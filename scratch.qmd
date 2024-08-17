@@ -75,122 +75,7 @@ frontmatter %>%
 # Functions
 
 ```{r}
-get_md <- function(file) {
-  
-  parsermd::parse_rmd(file, allow_incomplete = TRUE) 
-  
-}
-```
-
-
-```{r}
-get_frontmatter <- function(md) {
-  
-  frontmatter <- md %>% 
-    parsermd::rmd_select(parsermd::has_type('rmd_yaml_list'))
-  
-  # There is only one YAML block, so 
-  frontmatter %>% pluck(1)
-
-}
-```
-
-```{r}
-get_body <- function(md) {
-  
-  md %>% 
-    parsermd::rmd_select(-parsermd::has_type('rmd_yaml_list'))
-  
-}
-```
-
-```{r}
-get_tags <- function(fm) {
-  
-  fm %>% pluck('tags')
-  
-}
-```
-
-```{r}
-get_areas <- function(fm) {
-  
-  fm %>% pluck('areas')
-  
-}
-```
-
-```{r}
-area2tag <- function(area, add_hash = TRUE) {
-  
-  area %>% 
-    # Remove link chars
-    stringr::str_remove('^[ ]*\\[\\[') %>% 
-    stringr::str_remove('\\]\\][ ]*$') %>% 
-    # Remove alias
-    stringr::str_remove('\\|.*$') %>% 
-    # Remove leading and trailing spaces
-    stringr::str_trim() %>% 
-    # Replace remaining spaces with -    
-    stringr::str_replace_all('[ ]+', '-') %>% 
-    # Make lowercase
-    stringr::str_to_lower() %>% 
-    paste0(
-      ifelse(add_hash, '#', ''), .
-    )
-  
-}
-```
-
-```{r}
-set_tags <- function(fm, tags) {
-  
-  fm %>% 
-    modify_at('tags', ~tags)
-  
-}
-```
-
-```{r}
-remove_areas <- function(fm) {
-  
-  fm %>% 
-    discard_at('areas')
-  
-}
-```
-
-```{r}
-# Return string
-fix_frontmatter <- function(fm) {
-
-  areas <- fm %>% get_areas()  
-  tags <- fm %>% get_tags()  
-  
-  if (is.null(areas))
-    return(fm)
-  
-  areas <- area2tag(areas, FALSE)
-  tags <- union(tags, areas)
-  
-  fm %>% 
-    set_tags(tags) %>% 
-    remove_areas() %>% 
-    as.yaml() %>% 
-    paste0('---\n', ., '---\n\n')
-}
-```
-
-```{r}
-fix_body <- function(body) {
-  
-  body #TODO
-  
-}
-```
-
-```{r}
-area_regex <- '(\\[\\[Areas/[^]]+\\]\\])'
+source('fix_tags.R')
 ```
 
 
@@ -241,7 +126,8 @@ fm %>% get_areas() %>%
 
 ```{r}
 fm %>% 
-  fix_frontmatter()
+  fix_frontmatter() %>% 
+  cat()
 ```
 
 ```{r}
@@ -254,29 +140,7 @@ df <- get_md('samples/Main notes/Alectryon recipes.md') %>%
 df
 ```
 
-Now I need to replace all links to areas in the body.
-
-Return a string too, as in fix_frontmatter.
-
 ```{r}
-change_body <- function(ast) {
-
-  area_regex <- '\\[\\[Areas/[^]]+\\]\\]'
-  
-  ast %>% 
-    as_document() %>% 
-    str_replace_all(area_regex, area2tag)
-
-}
-```
-
-```{r}
-df %>% 
-  mutate(
-    ast = case_when(
-      type %in% c('rmd_heading', 'rmd_markdown') ~ change_body(ast),
-      TRUE ~ ast
-    )
-  )
+fix_file('samples/Main notes/Alectryon recipes.md') %>% cat()
 ```
 
